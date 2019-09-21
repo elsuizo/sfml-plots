@@ -39,7 +39,7 @@ struct Axis<'a> {
     shape: RectangleShape<'a>,
     color: Color,
     ticks: Option<TickType>,
-    t: Vec<AxisTick<'a>>
+    t: Vec<AxisTick<'a>>,
 }
 
 #[derive(Clone, Copy)]
@@ -60,10 +60,16 @@ impl<'b> AxisTick<'b> {
         s.set_fill_color(c);
         s.set_position(*position);
 
-        Self {shape: s, color: *c, position: *position}
+        Self {
+            shape: s,
+            color: *c,
+            position: *position,
+        }
     }
 }
 
+// NOTE(elsuizo:2019-09-21): es mejor llamar a el type con su alias Self, porque si le cambiamos el
+// nombre no tenemos que cambiar nada
 impl<'a> Axis<'a> {
     pub fn new(c: &Color, axis_type: AxisTypes, ticks: Option<TickType>) -> Self {
         let mut s = RectangleShape::new();
@@ -90,7 +96,12 @@ impl<'a> Axis<'a> {
         }
         // s.set_outline_thickness(3.0); // no se si va
         // s.set_outline_color(&Color::BLACK);
-        Self { shape: s, color: *c , ticks: ticks, t: internal_tick}
+        Self {
+            shape: s,
+            color: *c,
+            ticks: ticks,
+            t: internal_tick,
+        }
     }
 }
 
@@ -101,11 +112,11 @@ impl<'a> Axis<'a> {
             TickType::TickOnly => {
                 let tick_color = Color::RED;
                 for num_ticks in (0..WIDTH).step_by(DELTA_X as usize) {
-                    let mut position = Vector2f::new(num_ticks  as f32, (HEIGHT / 2) as f32);
+                    let mut position = Vector2f::new(num_ticks as f32, (HEIGHT / 2) as f32);
                     let t = AxisTick::new(&tick_color, &position);
                     vec_ticks.push(t);
                 }
-            },
+            }
             TickType::TickWithNumber => {
                 unimplemented!();
             }
@@ -122,7 +133,7 @@ impl<'a> Axis<'a> {
                     let mut t = AxisTick::new(&tick_color, &position);
                     vec_ticks.push(t);
                 }
-            },
+            }
             TickType::TickWithNumber => {
                 unimplemented!();
             }

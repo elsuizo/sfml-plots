@@ -1,6 +1,7 @@
 // TODO(elsuizo:2019-09-20):
-// - [ ] Sistema coordenadas(dos RectangleShape que se crucen para empezar)
-// - [ ] Sistemo coordenado(con tiks periodicos)
+// - [X] Sistema coordenadas(dos RectangleShape que se crucen para empezar)
+//  - [X] Faltario agregarle algunas opciones cuando se lo crea
+// - [X] Sistemo coordenado(con tiks periodicos)
 // - [ ] Sistema coordenado(con tiks y numeros)
 // - [ ] Sistema coordenado(con tiks y numeros y que grafique puntos)
 //-------------------------------------------------------------------------
@@ -23,14 +24,28 @@ use sfml::window::{ContextSettings, Event, Key, Style, VideoMode};
 const WIDTH: u32 = 700; // anchura
 const HEIGHT: u32 = 500; // altura
 
+// TODO(elsuizo:2019-09-21): por ahora son constantes globales
+const N: u32 = 50;
+const DELTA_X: f32 = (WIDTH / N) as f32;
+const DELTA_Y: f32 = (HEIGHT / N) as f32;
+#[derive(Debug)]
 struct AxisTick<'a> {
     shape: RectangleShape<'a>,
     color: Color,
+    position: Vector2f,
 }
 
 struct Axis<'a> {
     shape: RectangleShape<'a>,
     color: Color,
+    ticks: Option<TickType>,
+    t: Vec<AxisTick<'a>>
+}
+
+#[derive(Clone, Copy)]
+enum TickType {
+    TickWithNumber,
+    TickOnly,
 }
 
 enum AxisTypes {
@@ -38,17 +53,30 @@ enum AxisTypes {
     YAxeType,
 }
 
-impl<'a> Axis<'a> {
-    fn new(c: Color, axis_type: AxisTypes, ticks: Option<Vec<AxisTick>>) -> Self {
+impl<'b> AxisTick<'b> {
+    pub fn new(c: &Color, position: &Vector2f) -> Self {
         let mut s = RectangleShape::new();
+        s.set_size(Vector2f::new(2.0, 4.0));
+        s.set_fill_color(c);
+        s.set_position(*position);
+
+        Self {shape: s, color: *c, position: *position}
+    }
+}
+
+impl<'a> Axis<'a> {
+    pub fn new(c: &Color, axis_type: AxisTypes, ticks: Option<TickType>) -> Self {
+        let mut s = RectangleShape::new();
+        let mut internal_tick: Vec<AxisTick> = Vec::new();
         match axis_type {
             AxisTypes::XAxeType => {
                 let origin = Vector2f::new(0.0, (HEIGHT / 2) as f32); // fix position
                 s.set_size(Vector2f::new(WIDTH as f32, 2.0));
-                s.set_fill_color(&c);
+                s.set_fill_color(c);
                 s.set_position(origin);
                 if let Some(t) = ticks {
-                    Self::draw_ticks(t);
+                    println!("hole desde el if let");
+                    internal_tick = Self::draw_ticks_x(t);
                 }
             }
             AxisTypes::YAxeType => {
@@ -57,18 +85,52 @@ impl<'a> Axis<'a> {
                 s.set_fill_color(&c);
                 s.set_position(origin);
                 if let Some(t) = ticks {
-                    Self::draw_ticks(t);
+                    internal_tick = Self::draw_ticks_y(t);
                 }
             }
         }
         // s.set_outline_thickness(3.0); // no se si va
         // s.set_outline_color(&Color::BLACK);
-        Self { shape: s, color: c }
+        Self { shape: s, color: *c , ticks: ticks, t: internal_tick}
     }
 }
 
 impl<'a> Axis<'a> {
-    fn draw_ticks(t: Vec<AxisTick>) {}
+    fn draw_ticks_x(t: TickType) -> Vec<AxisTick<'a>> {
+        let mut vec_ticks: Vec<AxisTick> = Vec::new();
+        match t {
+            TickType::TickOnly => {
+                let tick_color = Color::RED;
+                for num_ticks in (0..WIDTH).step_by(DELTA_X as usize) {
+                    let mut position = Vector2f::new(num_ticks  as f32, (HEIGHT / 2) as f32 - 4.0);
+                    println!("position: {:?}", position);
+                    let t = AxisTick::new(&tick_color, &position);
+                    vec_ticks.push(t);
+                }
+            },
+            TickType::TickWithNumber => {
+                unimplemented!();
+            }
+        }
+        vec_ticks
+    }
+    fn draw_ticks_y(t: TickType) -> Vec<AxisTick<'a>> {
+        let mut vec_ticks: Vec<AxisTick> = Vec::new();
+        match t {
+            TickType::TickOnly => {
+                let tick_color = Color::RED;
+                for num_ticks in 0..100 {
+                    let mut position = Vector2f::new((WIDTH / 2) as f32, num_ticks as f32 + DELTA_Y);
+                    let mut t = AxisTick::new(&tick_color, &position);
+                    vec_ticks.push(t);
+                }
+            },
+            TickType::TickWithNumber => {
+                unimplemented!();
+            }
+        }
+        vec_ticks
+    }
 }
 
 fn main() {
@@ -83,8 +145,9 @@ fn main() {
     let background_color = &Color::rgb(100, 100, 100);
     let x_axis_color = Color::BLACK;
     let y_axis_color = Color::BLACK;
-    let mut x_axis = Axis::new(x_axis_color, AxisTypes::XAxeType, None);
-    let mut y_axis = Axis::new(y_axis_color, AxisTypes::YAxeType, None);
+    let mut x_axis = Axis::new(&x_axis_color, AxisTypes::XAxeType, Some(TickType::TickOnly));
+    let mut y_axis = Axis::new(&y_axis_color, AxisTypes::YAxeType, None);
+    // println!("ticks: {:?}", x_axis.t);
     //-------------------------------------------------------------------------
     //                        loop
     //-------------------------------------------------------------------------
@@ -105,6 +168,9 @@ fn main() {
         window.clear(background_color);
         window.draw(&x_axis.shape);
         window.draw(&y_axis.shape);
+        for tick in &x_axis.t {
+            window.draw(&tick.shape);
+        }
         window.display();
     }
 }

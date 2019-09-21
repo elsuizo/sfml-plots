@@ -140,7 +140,8 @@ fn main() {
         &Default::default(),
     );
     window.set_vertical_sync_enabled(true);
-    let background_color = &Color::rgb(100, 100, 100);
+    let background_color = &Color::rgb(120, 100, 100);
+    // let background_color = &Color::WHITE;
     let x_axis_color = Color::BLACK;
     let y_axis_color = Color::BLACK;
     let x_axis = Axis::new(&x_axis_color, AxisTypes::XAxeType, Some(TickType::TickOnly));

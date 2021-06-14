@@ -5,4 +5,4 @@ authors = ["elsuizo <mnoblia@disroot.org>"]
 edition = "2018"
 
 [dependencies]
-sfml = "*"
+sfml = "0.16.0"

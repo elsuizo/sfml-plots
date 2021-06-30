@@ -1,3 +1,9 @@
+// TODO(elsuizo:2021-06-30):
+// - [ ] Primero hacer andar la animacion de `Axis`
+// - [ ] Agregar los numberos en los ticks
+// - [ ] Ver como hace el supuesto zoom con el mouse
+// - [ ] Ver como hace que el eje y se ponga como limite a la izquierda cuando ya esta avanzada la
+// animacion
 use sfml::graphics::{
     CircleShape, Color, Font, PrimitiveType, RectangleShape, RenderTarget, RenderWindow, Shape,
     Text, Transformable, Vertex, VertexArray, View,
@@ -6,6 +12,10 @@ use sfml::graphics::{
 use sfml::system::{Clock, Vector2f};
 use sfml::window::{Event, Key, Style};
 
+mod graph;
+mod utils;
+
+use graph::AnimatedGraph;
 const WINDOW_WIDTH: f32 = 500.0;
 const WINDOW_HEIGHT: f32 = 500.0;
 
@@ -13,6 +23,7 @@ const WINDOW_HEIGHT: f32 = 500.0;
 //                        types
 //-------------------------------------------------------------------------
 
+#[derive(Debug, Default)]
 struct Axis<'a> {
     axis_shape: RectangleShape<'a>,
     marks: Vec<RectangleShape<'a>>,
@@ -22,12 +33,6 @@ struct Axis<'a> {
     tic: RectangleShape<'a>,
     tic_period: usize,
 }
-
-// NOTE(elsuizo:2021-06-09): osea que esto es el parametro que usa para saber las dimensiones de la
-// ventana que esta renderizando(creo) pero me llama la atencion de que no este definido el type en
-// la implementacion de el
-// La cosa es asi View es parte de SFML
-// struct View(Vector2f, Vector2f);
 
 // TODO(elsuizo:2021-06-09): parece que podemos generar un RectangleShape desde una Texture...
 impl<'a> Axis<'a> {
@@ -140,11 +145,12 @@ impl<'a> Axis<'a> {
     }
 }
 
-struct PlotWindow<'a> {
+#[derive(Debug)]
+struct PlotWindow<'a, F> {
     render_window: RenderWindow,
-    graphs: Vec<Graph>,
+    graphs: Vec<AnimatedGraph<F>>,
     view: View,
-    event: Event,
+    event: Option<Event>,
     last_mouse_pos: Vector2f,
     x_axis: Axis<'a>,
     y_axis: Axis<'a>,
@@ -155,27 +161,25 @@ struct PlotWindow<'a> {
 
 // TODO(elsuizo:2021-06-12): me faltaria implementar los types AnimatedGraph y ver que hacer con
 // Graph(creo que lo mejor es hacer un trait porque Graph es una struct abstract en Julia)
-impl<'a> PlotWindow<'a> {
+impl<'a, F: Fn(f32) -> f32> PlotWindow<'a, F> {
     fn new(render_window: RenderWindow) -> Self {
-        let width = window.size().x;
-        let height = window.size.y;
-        let graps: Vec<Graph> = Vec::new();
+        let width = render_window.size().x as f32;
+        let height = render_window.size().y as f32;
+        let graphs: Vec<AnimatedGraph<F>> = Vec::new();
         let view = View::new(Vector2f::new(0.0, 0.0), Vector2f::new(width, -height));
-        let event: Event = Default::default();
-        let x_axis = Axis::new(view, true);
-        let y_axis = Axis::new(view, false);
+        let x_axis = Axis::new(&view, true);
+        let y_axis = Axis::new(&view, false);
         let last_mouse_pos = Vector2f::new(0.0, 0.0);
 
         Self {
             render_window,
             graphs,
-            view,
-            event,
+            view: *view,
+            event: None,
             last_mouse_pos,
             x_axis,
             y_axis,
-            20,
-
+            ppu: 20,
         }
     }
 }
@@ -184,7 +188,7 @@ fn main() {
     // Create the window of the application
     let mut window = RenderWindow::new(
         (WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32),
-        "Double pendulum simulation",
+        "sfml-plots",
         Style::CLOSE,
         &Default::default(),
     );

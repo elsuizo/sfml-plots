@@ -22,18 +22,24 @@
 //
 // You should have received a copy of the GNU General Public License
 //--------------------------------------------------------------------------
+use sfml::graphics::{Color, RenderWindow};
+use sfml::system::{Clock, Vector2f};
+use std::collections::VecDeque;
+// TODO(elsuizo:2021-06-14): sacar el * que no queda bien...
+use crate::utils::*;
 // NOTE(elsuizo:2021-06-13): el hace un type abstracto Graph con dos implementaciones que son
 // AnimatedGraph y StaticGraph que son para los que son animaciones y para los que son staticos
 // creo que voy a hacer solo primero la que me interesa que es la que tiene animaciones y que
 // aparte es la mas dificil. Por ahora lo hago como un simple struct pero despues podria hacer un
 // trait general que sea Graph y que tengan las implementaciones para los dos casos
+#[derive(Debug)]
 pub struct AnimatedGraph<F> {
     fun: F,
-    points: HashMap<i32, Vector2f>,
+    points: VecDeque<Vector2f>,
     accuracy: i32,
-    xval: f32,
-    start_x: f32,
-    speed: f32,
+    xval: i32,
+    start_x: i32,
+    speed: i32,
     clock: Clock,
     r_time: f32,
     color: Color,
@@ -46,12 +52,12 @@ impl<F: Fn(f32) -> f32> AnimatedGraph<F> {
     fn new(fun: F) -> Self {
         let thickness = 2.0;
         let color = Color::RED;
-        let speed = 2.0;
-        let start_x = 0.0;
-        let points: HashMap<i32, Vector2f> = HashMap::new();
+        let speed = 2;
+        let start_x = 0;
+        let points: VecDeque<Vector2f> = VecDeque::new();
         let clock = Clock::start();
-        let xval = 0.0;
-        let accuracy = 1.0;
+        let xval = 0;
+        let accuracy = 1;
         let r_time = 0.0;
         Self {
             fun,
@@ -67,31 +73,29 @@ impl<F: Fn(f32) -> f32> AnimatedGraph<F> {
         }
     }
 
-    fn advance(&mut self, ppu: f32) {
-        // TODO(elsuizo:2021-06-13): aca estoy comparando dos floats asi nomas deberia usar alguna
-        // de las funciones de static-math
+    fn advance(&mut self, ppu: i32) {
         if self.xval == self.start_x {
             self.start_x *= ppu;
-            self.xval    *= ppu;
+            self.xval *= ppu;
             self.clock.restart();
             self.advance_x();
         }
         let mut elapsed_time = self.clock.elapsed_time().as_seconds() + self.r_time;
         // TODO(elsuizo:2021-06-13): ojo que esto puede estar mal y capaz que haya que poner algun
         // parentesis
-        let interval = 1 / self.speed * self.accuracy / ppu;
+        let interval = (1 / self.speed * self.accuracy / ppu) as f32;
         while elapsed_time >= interval {
             self.clock.restart();
-            let result = self.fun(self.xval / ppu);
+            let result = (self.fun)((self.xval / ppu) as f32);
             // NOTE(elsuizo:2021-06-13): aca prueba si el valor de retorno de la funcion es
             // `nothing` o no (que en Julia parece que ese valor es el que simboliza a un `void` en
             // C) osea que podriamos hacer lo que hace el cuando no obtenemos un valor de la
             // funcion pero con un Option
             // NOTE(elsuizo:2021-06-13): aca tambien mira cual es el type de result para hacer dos
             // cosas diferentes con los valores
-            let pos = Vector2f::new(self.xval, ppu * result); // esto es el punto que nos da la funcion basicamente
-            // agregamos los puntos en el HashMap
-            self.points.insert(xval, pos);
+            let pos = Vector2f::new(self.xval as f32, ppu as f32 * result); // esto es el punto que nos da la funcion basicamente
+                                                                            // agregamos los puntos en el HashMap
+            self.points.insert(self.xval, pos);
             self.advance_x();
             elapsed_time -= interval;
         }
@@ -105,8 +109,8 @@ impl<F: Fn(f32) -> f32> AnimatedGraph<F> {
     // NOTE(elsuizo:2021-06-13): esta funcion es lo mismo que hace arriba cuando espera una
     // exception
     fn add_point(&mut self, index: i32, ppu: f32) {
-        let result = self.fun(index / ppu);
-        let pos = Vector2f::new(index, ppu * result);
+        let result = (self.fun)(index as f32 / ppu);
+        let pos = Vector2f::new(index as f32, ppu * result);
         self.points.insert(index, pos);
     }
 
@@ -119,8 +123,10 @@ impl<F: Fn(f32) -> f32> AnimatedGraph<F> {
     // calcula la pendiente y no se que mas para que sea una linea) otra cosa que hace es ordenar
     // los puntos del HashMap lo que podriamos hacer es probar con otra estructura de datos en la
     // que cuando se agreguen los puntos se hagan en orden
+    // TODO(elsuizo:2021-06-16): aca se me presenta un problema porque no puedo hacer un HashMap
+    // con f32 ...
     fn draw(&self, window: RenderWindow) {
-        let last_point = 0.0;
-        let point
+        let mut last_point = 0.0;
+        let points = self.points.keys().sort();
     }
 }
